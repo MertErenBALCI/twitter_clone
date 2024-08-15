@@ -1,0 +1,14 @@
+module.exports.login = require('./login');
+module.exports.register = require('./register');
+module.exports.message = require('./messages');
+module.exports.updateUser = require('./updateUser');
+module.exports.updatePassword = require('./updatePassword');
+module.exports.deleteUser = require('./deleteUser');
+module.exports.getUserInfo = require('./getUserInfo');
+module.exports.follow = require('./follow');
+module.exports.getRequests = require('./getRequests');
+module.exports.acceptFollowRequest = require('./acceptFollowRequest');
+module.exports.deleteFollowRequest = require('./deleteFollowRequest');
+module.exports.deleteFollow = require('./deleteFollow');
+module.exports.getFollower = require('./getFollower');
+module.exports.getFollowing = require('./getFollowing'); 

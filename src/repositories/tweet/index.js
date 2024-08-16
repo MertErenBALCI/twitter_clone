@@ -46,10 +46,150 @@ module.exports.getUserTweets = async (userTweets) => {
         return false;
     }
 };
+
+module.exports.getHomePage = async (Tweets) => {
+    try {
+        console.log(JSON.stringify(Tweets));
+        let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+            {
+                '$match': {
+                    'userID': Tweets.userID
+                }
+            }, {
+                '$lookup': {
+                    'from': 'follows',
+                    'localField': 'userID',
+                    'foreignField': 'follower',
+                    'pipeline': [
+                        {
+                            '$lookup': {
+                                'from': 'tweet',
+                                'localField': 'following',
+                                'foreignField': 'userID',
+                                'pipeline': [
+                                    {
+                                        '$match': {
+                                            'tweetType': {
+                                                '$in': [
+                                                    1, 4, 5
+                                                ]
+                                            }
+                                        }
+                                    }, {
+                                        '$lookup': {
+                                            'from': 'users',
+                                            'localField': 'userID',
+                                            'foreignField': 'userID',
+                                            'pipeline': [
+                                                {
+                                                    '$project': {
+                                                        'userID': true,
+                                                        'name': true,
+                                                        'nickname': true,
+                                                        'profilePhoto': true
+                                                    }
+                                                }
+                                            ],
+                                            'as': 'userDetails'
+                                        }
+                                    }
+                                ],
+                                'as': 'tweets'
+                            }
+                        }
+                    ],
+                    'as': 'result'
+                }
+            }
+        ]);
+
+        if (query !== false) {
+            if (query.length > 0) {
+                return query;
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
+
+module.exports.getProfilePage = async (ProfilePage) => {
+    try {
+        console.log(JSON.stringify(ProfilePage));
+        let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+            {
+                '$match': {
+                    'userID': ProfilePage.userID
+                }
+            }, {
+                '$project': {
+                    'userID': true,
+                    'name': true,
+                    'nickname': true,
+                    'profilePhoto': true,
+                    'profileHeaderPhoto': true,
+                    'bio': true,
+                    'created_Date_time': true,
+                    'followingSize': true,
+                    'followerSize': true
+                }
+            }, {
+                '$lookup': {
+                    'from': 'tweet',
+                    'localField': 'userID',
+                    'foreignField': 'userID',
+                    'pipeline': [
+                        {
+                            '$match': {
+                                'tweetType': {
+                                    '$in': [
+                                        1, 4, 5
+                                    ]
+                                }
+                            }
+                        }, {
+                            '$lookup': {
+                                'from': 'users',
+                                'localField': 'userID',
+                                'foreignField': 'userID',
+                                'pipeline': [
+                                    {
+                                        '$project': {
+                                            'userID': true,
+                                            'name': true,
+                                            'nickname': true,
+                                            'profilePhoto': true
+                                        }
+                                    }
+                                ],
+                                'as': 'userDetails'
+                            }
+                        }
+                    ],
+                    'as': 'result'
+                }
+            }
+        ]);
+
+        if (query !== false) {
+            if (query.length > 0) {
+                return query;
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
 module.exports.getTweetComments = async (TweetComments) => {
     try {
         console.log(JSON.stringify(TweetComments));
-        let comments = await new db.mongodb.CRUD('twitter', 'tweet').aggregate([
+        let comments = await new db.mongodb.CRUD('twitter', 'users').aggregate([
             {
                 '$match': {
                     'tweetID': TweetComments.tweetID,
@@ -280,6 +420,35 @@ module.exports.postQuote = async (quote) => {
     }
 };
 
+module.exports.updateQuote = async (updateQuote) => {
+    try {
+        let updatedQuote = await new db.mongodb.CRUD('twitter', 'tweet').update({ quoteID: updateQuote.quoteID },
+            {
+                $set: {
+                    tweet: updateQuote.tweet
+                }
+            });
+
+        if (updatedQuote !== false) {
+            if (updatedQuote.modifiedCount > 0) {
+                return updatedQuote;
+            }
+            return null;
+        }
+
+        if (updatedQuote.modifiedCount === 0) {
+            console.log('Güncelleme işlemi başarısız oldu.');
+            return ({ message: 'aaa' });
+
+        }
+
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        throw error;
+    }
+};
+
 module.exports.deleteQuote = async (deleteQuote) => {
 
     try {
@@ -299,6 +468,7 @@ module.exports.deleteQuote = async (deleteQuote) => {
             await new db.mongodb.CRUD('twitter', 'tweet').update(
                 { tweetID: deleteQuote.tweetID },
                 {
+                    $pull: { reTweeters: deleteQuote.userID },
                     $inc: { likeSize: -1 }
                 }
             );
@@ -325,10 +495,16 @@ module.exports.postRetweet = async (reTweet) => {
         let isreTweeted = await new db.mongodb.CRUD('twitter', 'tweet').find(
             {
                 tweetID: reTweet.tweetID,
-                reTweeters: reTweet.userID
-            },
-            [0, 1]
+                userID: reTweet.userID,
+                tweetType: 5
+            }
         );
+
+
+        if (isreTweeted.length > 0) {
+            return false;
+        }
+
 
         console.log(isreTweeted);
 
@@ -338,9 +514,9 @@ module.exports.postRetweet = async (reTweet) => {
         }
 
 
-        else if (isreTweeted == false) {
-            console.log('VBBBBBBBBBBB');
-            let reTweets = await new db.mongodb.CRUD('twitter', 'tweet').update(
+        if (isreTweeted.length == 0) {
+            let reTweets = await new db.mongodb.CRUD('twitter', 'tweet').insert(reTweet);
+            let reTweetSize = await new db.mongodb.CRUD('twitter', 'tweet').update(
                 { tweetID: reTweet.tweetID },
                 {
                     $push: {
@@ -351,12 +527,13 @@ module.exports.postRetweet = async (reTweet) => {
                     }
                 }
             );
+            console.log(reTweetSize);
 
-            console.log(reTweets, 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
-
-            if (reTweets) {
-
-                return reTweets;
+            if (reTweets !== false) {
+                if (reTweets.length > 0) {
+                    return reTweets[0];
+                }
+                return null;
             }
         }
 
@@ -370,17 +547,18 @@ module.exports.postRetweet = async (reTweet) => {
 module.exports.deleteRetweet = async (deleteRetweet) => {
     try {
 
-        let tweet = await new db.mongodb.CRUD('twitter', 'tweet').find(
+        let reTweet = await new db.mongodb.CRUD('twitter', 'tweet').find(
             {
-                tweetID: deleteRetweet.tweetID,
-                reTweeters: deleteRetweet.userID
+                reTweetID: deleteRetweet.reTweetID,
+                userID: deleteRetweet.userID,
+                tweetType: 5
             }
-            ,
-            [0, 1]
         );
 
-        if (tweet) {
-            await new db.mongodb.CRUD('twitter', 'tweet').update(
+        if (reTweet) {
+            let deleteRetweets = await new db.mongodb.CRUD('twitter', 'tweet').delete({ reTweetID: deleteRetweet.reTweetID });
+            console.log(deleteRetweets);
+            await new db.mongodb.CRUD('twitter', 'tweet').aggregate(
                 { tweetID: deleteRetweet.tweetID },
                 {
                     $pull: { reTweeters: deleteRetweet.userID },
@@ -388,9 +566,9 @@ module.exports.deleteRetweet = async (deleteRetweet) => {
                 }
             );
         }
-        if (tweet !== false) {
-            if (tweet.length > 0) {
-                return tweet[0];
+        if (reTweet !== false) {
+            if (reTweet.length > 0) {
+                return reTweet[0];
             }
             return null;
         }

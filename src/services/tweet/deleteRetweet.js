@@ -8,7 +8,8 @@ module.exports = async (req, res) => {
     try {
         let deleteRetweet = {
             userID: req.body.userID,
-            tweetID: req.body.tweetID,
+            reTweetID: req.body.reTweetID,
+            tweetID: req.bod.tweetID,
         };
 
         let deletedRetweet = await repositories.tweet.deleteRetweet(deleteRetweet);

@@ -20,6 +20,46 @@ module.exports.getUserTweets = (req, res, next) => {
         return res.status(helpers.error.errorHandler(error).httpStatus).json(helpers.error.errorHandler(error));
     }
 };
+
+module.exports.getHomePage = (req, res, next) => {
+    try {
+        let body = {};
+        if (!req.body.userID) {
+            throw new helpers.error.MissingField();
+        }
+
+        body.userID = req.body.userID.toString();
+
+        req.body = body;
+
+        return next();
+
+    } catch (error) {
+
+        helpers.error.logger(error);
+        return res.status(helpers.error.errorHandler(error).httpStatus).json(helpers.error.errorHandler(error));
+    }
+};
+
+module.exports.getProfilePage = (req, res, next) => {
+    try {
+        let body = {};
+        if (!req.body.userID) {
+            throw new helpers.error.MissingField();
+        }
+
+        body.userID = req.body.userID.toString();
+
+        req.body = body;
+
+        return next();
+
+    } catch (error) {
+
+        helpers.error.logger(error);
+        return res.status(helpers.error.errorHandler(error).httpStatus).json(helpers.error.errorHandler(error));
+    }
+};
 module.exports.getTweetComments = (req, res, next) => {
     try {
         let body = {};
@@ -204,11 +244,12 @@ module.exports.deleteRetweet = (req, res, next) => {
     try {
         let body = {};
 
-        if (!req.body.userID || !req.body.tweetID) {
+        if (!req.body.userID || !req.body.reTweetID || !req.body.tweetID) {
             throw new helpers.error.MissingField();
         }
 
         body.userID = req.body.userID.toString();
+        body.reTweet = req.body.reTweetID.toString();
         body.tweetID = req.body.tweetID.toString();
 
         req.body = body;
@@ -245,16 +286,40 @@ module.exports.postQuote = (req, res, next) => {
     }
 };
 
+module.exports.updateQuote = (req, res, next) => {
+    try {
+        let body = {};
+
+        if (!req.body.userID || !req.body.tweetID || !req.body.tweet) {
+            throw new helpers.error.MissingField();
+        }
+
+        body.userID = req.body.userID.toString();
+        body.tweetID = req.body.tweetID.toString();
+        body.tweet = req.body.tweet.toString();
+
+        req.body = body;
+
+        return next();
+
+    } catch (error) {
+
+        helpers.error.logger(error);
+        return res.status(helpers.error.errorHandler(error).httpStatus).json(helpers.error.errorHandler(error));
+    }
+};
+
 module.exports.deleteQuote = (req, res, next) => {
     try {
         let body = {};
 
-        if (!req.body.userID || !req.body.quoteID) {
+        if (!req.body.userID || !req.body.quoteID || !req.body.tweetID) {
             throw new helpers.error.MissingField();
         }
 
         body.userID = req.body.userID.toString();
         body.quoteID = req.body.quoteID.toString();
+        body.tweetID = req.body.tweetID.toString();
 
         req.body = body;
 

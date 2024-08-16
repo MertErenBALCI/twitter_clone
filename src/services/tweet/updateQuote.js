@@ -1,36 +1,28 @@
+
 const constants = require('../../constants');
-
 const helpers = require('../../helpers');
-
 const repositories = require('../../repositories');
 
-
 module.exports = async (req, res) => {
-
     let responseBody = constants.response.DEFAULT();
 
     try {
+        const tweetType = 4;
 
-        let reTweetID = repositories.tweet.randomId();
-        let tweetType = 5;
-
-
-        let reTweet = {
+        let updateQuote = {
             userID: req.body.userID,
-            tweetID: req.body.tweetID,
-            reTweetID: reTweetID,
+            quoteID: req.body.quoteID,
             tweetType: tweetType,
-            created_Date_time: new Date()
+            tweet: req.body.tweet,
         };
 
-        let reTweets = await repositories.tweet.postRetweet(reTweet);
+        let updateQuotes = await repositories.tweet.updateQuote(updateQuote);
 
-        if (!reTweets) {
+        if (!updateQuotes) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { reTweets };
-
+        responseBody.result = { updateQuotes };
     } catch (error) {
         helpers.error.logger(error);
         responseBody = helpers.error.errorHandler(error);

@@ -128,6 +128,16 @@ module.exports.follow = async (follow) => {
             following: follow.yourUserID
         });
 
+        let followerSize = await new db.mongodb.CRUD('twitter', 'users').update({ followerSize: follow.yourUserID }, {
+
+            $inc: { followerSize: 1 }
+        });
+        let followingSize = await new db.mongodb.CRUD('twitter', 'users').update({ followingSize: follow.myUserID }, {
+
+            $inc: { followingSize: 1 }
+
+        });
+        console.log(followerSize, followingSize);
         if (follows !== false) {
             if (follows.length > 0) {
                 return follow.followID;

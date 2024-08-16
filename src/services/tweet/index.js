@@ -13,3 +13,9 @@ module.exports.deleteQuote = require('./deleteQuote');
 
 module.exports.postLike = require('./postLike');
 module.exports.deleteLike = require('./deleteLike');
+
+module.exports.getHomePage = require('./getHomePage');
+
+module.exports.getProfilePage = require('./getProfilePage');
+
+module.exports.updateQuote = require('./updateQuote');

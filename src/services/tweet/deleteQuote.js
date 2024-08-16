@@ -1,3 +1,4 @@
+
 const constants = require('../../constants');
 const helpers = require('../../helpers');
 const repositories = require('../../repositories');
@@ -9,6 +10,7 @@ module.exports = async (req, res) => {
         let deleteQuote = {
             userID: req.body.userID,
             quoteID: req.body.quoteID,
+            tweetID: req.body.tweetID
         };
 
         let deletedQuote = await repositories.tweet.deleteQuote(deleteQuote);

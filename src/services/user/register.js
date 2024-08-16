@@ -10,6 +10,7 @@ module.exports = async (req, res) => {
 
         let match = {
             userID: randomUserID,
+            userType: req.body.userType,
             email: req.body.email,
             password: req.body.password,
             name: req.body.name,
@@ -18,6 +19,8 @@ module.exports = async (req, res) => {
             profilePhoto: req.body.profilePhoto,
             profileHeaderPhoto: req.body.profileHeaderPhoto,
             bio: req.body.bio,
+            followerSize: null,
+            followingSize: null,
             created_Date_time: new Date(),
 
         };

@@ -32,10 +32,17 @@ router.post('/deleteRetweet', [controller.tweet.deleteRetweet], services.tweet.d
 
 router.post('/postQuote', [controller.tweet.postQuote], services.tweet.postQuote);
 router.post('/deleteQuote', [controller.tweet.deleteQuote], services.tweet.deleteQuote);
+router.post('/updateQuote', [controller.tweet.updateQuote], [services.tweet.updateQuote]);
 
 
 router.post('/postLike', [controller.tweet.postLike], services.tweet.postLike);
 router.post('/deleteLike', [controller.tweet.deleteLike], services.tweet.deleteLike);
+
+router.post('/getHomePage', [controller.tweet.getHomePage], [services.tweet.getHomePage]);
+
+router.post('/getProfilePage', [controller.tweet.getProfilePage], [services.tweet.getProfilePage]);
+
+
 
 
 

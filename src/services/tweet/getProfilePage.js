@@ -1,35 +1,22 @@
 const constants = require('../../constants');
-
 const helpers = require('../../helpers');
-
 const repositories = require('../../repositories');
 
-
 module.exports = async (req, res) => {
-
     let responseBody = constants.response.DEFAULT();
 
     try {
-
-        let reTweetID = repositories.tweet.randomId();
-        let tweetType = 5;
-
-
-        let reTweet = {
+        let ProfilePage = {
             userID: req.body.userID,
-            tweetID: req.body.tweetID,
-            reTweetID: reTweetID,
-            tweetType: tweetType,
-            created_Date_time: new Date()
         };
 
-        let reTweets = await repositories.tweet.postRetweet(reTweet);
+        let ProfilePages = await repositories.tweet.getProfilePage(ProfilePage);
 
-        if (!reTweets) {
+        if (!ProfilePages) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { reTweets };
+        responseBody.result = { ProfilePages };
 
     } catch (error) {
         helpers.error.logger(error);

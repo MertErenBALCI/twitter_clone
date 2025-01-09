@@ -38,28 +38,22 @@ module.exports.register = async (match) => {
     } catch (error) {
         helpers.error.logger(error);
     }
-
-
 };
 
-module.exports.isThereEmail = async (email) => {
+module.exports.isThere = async (email, nickname) => {
 
-    let kullaniciVarMi = await new db.mongodb.CRUD('twitter', 'users').find({ email });
-    if (kullaniciVarMi.length > 0) {
+    let isThereEmail = await new db.mongodb.CRUD('twitter', 'users').find({ email });
+    if (isThereEmail.length > 0) {
 
         return false;
     }
-    return true;
 
-};
-
-module.exports.isThereNickname = async (nickname) => {
-
-    let kullaniciVarMi = await new db.mongodb.CRUD('twitter', 'users').find({ nickname });
-    if (kullaniciVarMi.length > 0) {
+    let isThereNickname = await new db.mongodb.CRUD('twitter', 'users').find({ nickname });
+    if (isThereNickname.length > 0) {
 
         return false;
     }
+
     return true;
 
 };
@@ -70,266 +64,6 @@ module.exports.randomId = () => {
     return randomId;
 };
 
-module.exports.messages = async (message) => {
-    try {
-
-        let messages = await new db.mongodb.CRUD('twitter', 'messages').insert(message);
-
-        if (messages !== false) {
-            if (messages.length > 0) {
-                return messages[0];
-            }
-            return null;
-        }
-
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-    }
-};
-
-module.exports.follow = async (follow) => {
-    try {
-        let isFollow = await new db.mongodb.CRUD('twitter', 'follows').find({
-            follower: follow.myUserID,
-            following: follow.yourUserID
-        });
-
-        if (isFollow && isFollow.length > 0) {
-            const isFollowID = isFollow[0].followID;
-            return {
-                error: 'Bu kullanıcıyı zaten takip ediyorsunuz.',
-                followID: isFollowID
-            };
-        }
-
-        let user = await new db.mongodb.CRUD('twitter', 'users').find({
-            userID: follow.yourUserID
-        });
-
-        if (user && user.length > 0 && user[0].userType === true) {
-            await new db.mongodb.CRUD('twitter', 'requests').insert({
-                requestID: follow.requestID,
-                requester: follow.myUserID,
-                reciever: follow.yourUserID,
-            });
-
-            return {
-                message: 'Takip isteği gönderildi.',
-                requestID: follow.requestID
-            };
-        }
-
-        let follows = await new db.mongodb.CRUD('twitter', 'follows').insert({
-            followID: follow.followID,
-            follower: follow.myUserID,
-            following: follow.yourUserID
-        });
-
-        let followerSize = await new db.mongodb.CRUD('twitter', 'users').update({ followerSize: follow.yourUserID }, {
-
-            $inc: { followerSize: 1 }
-        });
-        let followingSize = await new db.mongodb.CRUD('twitter', 'users').update({ followingSize: follow.myUserID }, {
-
-            $inc: { followingSize: 1 }
-
-        });
-        console.log(followerSize, followingSize);
-        if (follows !== false) {
-            if (follows.length > 0) {
-                return follow.followID;
-            }
-            return null;
-        }
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-
-module.exports.getRequests = async (myUserID) => {
-    try {
-        console.log(JSON.stringify(myUserID));
-        let request = await new db.mongodb.CRUD('twitter', 'requests').aggregate([
-            {
-                '$lookup': {
-                    'from': 'users',
-                    'localField': 'requester',
-                    'foreignField': 'userID',
-                    'as': 'match'
-                }
-            }, {
-                '$project': {
-                    'match.name': true,
-                    'match.profilePhoto': true,
-                    'match.nickname': true
-                }
-            }
-        ]);
-
-        if (request != false) {
-            if (request.length > 0) {
-                return request;
-            }
-            return null;
-        }
-        return false;
-    } catch (error) {
-        helpers.error.logger(error);
-        return false;
-    }
-};
-
-module.exports.acceptFollowRequest = async (okeyRequest) => {
-    try {
-        let followRequest = await new db.mongodb.CRUD('twitter', 'follows').insert({
-            followID: okeyRequest.followID,
-            follower: okeyRequest.following,
-            following: okeyRequest.follower
-        });
-
-        let deleteRequest = await new db.mongodb.CRUD('twitter', 'requests').delete({ requestID: okeyRequest.requestID },
-        );
-        console.log('requests collectionsundan kadlırıldı', deleteRequest);
-
-        if (followRequest !== false) {
-            if (followRequest.length > 0) {
-                return {
-                    message: 'Takip isteği kabul edildi.',
-                    requestID: okeyRequest.followID
-                };
-            }
-            return null;
-        }
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-
-module.exports.deleteFollowRequest = async (okeyRequest) => {
-    try {
-
-        let deleteRequest = await new db.mongodb.CRUD('twitter', 'requests').delete({ requestID: okeyRequest.requestID },
-        );
-        console.log('requests collectionsundan kadlırıldı', deleteRequest);
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-module.exports.deleteFollow = async (followID) => {
-    try {
-        let deleteResult = await new db.mongodb.CRUD('twitter', 'follows').delete({ followID: followID.followID },
-        );
-
-        if (deleteResult !== false) {
-            if (deleteResult.length > 0) {
-                const followID = deleteResult[0].followID;
-                return {
-                    error: 'Takipten çıkıldı',
-                    followID: followID
-                };
-            }
-            return null;
-        }
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-
-
-
-module.exports.getFollower = async (myUserID) => {
-    try {
-        console.log(JSON.stringify(myUserID));
-        let follower = await new db.mongodb.CRUD('twitter', 'follows').aggregate([
-            {
-                '$match': {
-                    'following': myUserID.following
-                }
-            }, {
-                '$lookup': {
-                    'from': 'users',
-                    'localField': 'follower',
-                    'foreignField': 'userID',
-                    'as': 'match'
-                }
-            }, {
-                '$project': {
-                    'match.name': true,
-                    'match.userID': true,
-                    'match.nickname': true
-                }
-            }
-        ]);
-
-        if (follower != false) {
-            if (follower.length > 0) {
-                return follower;
-            }
-            return null;
-        }
-        return false;
-    } catch (error) {
-        helpers.error.logger(error);
-        return false;
-    }
-};
-
-module.exports.getFollowing = async (myUserID) => {
-    try {
-        console.log(JSON.stringify(myUserID));
-        let follower = await new db.mongodb.CRUD('twitter', 'follows').aggregate([
-            {
-                '$match': {
-                    'follower': myUserID.follower
-                }
-            }, {
-                '$lookup': {
-                    'from': 'users',
-                    'localField': 'following',
-                    'foreignField': 'userID',
-                    'as': 'match'
-                }
-            }, {
-                '$project': {
-                    'match.name': true,
-                    'match.userID': true,
-                    'match.nickname': true
-                }
-            }
-        ]);
-
-        if (follower != false) {
-            if (follower.length > 0) {
-                return follower;
-            }
-            return null;
-        }
-        return false;
-    } catch (error) {
-        helpers.error.logger(error);
-        return false;
-    }
-};
-// message (soket.io) ve usertype a bak ona göre kodu düzenle
 
 module.exports.updateUser = async (user) => {
     try {
@@ -343,7 +77,8 @@ module.exports.updateUser = async (user) => {
                     birthday: user.birthday,
                     profilePhoto: user.profilePhoto,
                     profileHeaderPhoto: user.profileHeaderPhoto,
-                    bio: user.bio
+                    bio: user.bio,
+                    updated_at: user.updated_at
                 }
             });
 
@@ -369,25 +104,16 @@ module.exports.updateUser = async (user) => {
 
 module.exports.updatePassword = async (passwordInfo) => {
     try {
-        console.log('AAAAAAAAAAA');
         let currentPassword = await new db.mongodb.CRUD('twitter', 'users').find({
             userID: passwordInfo.userID,
             password: passwordInfo.currentPassword
         });
 
         if (currentPassword.length > 0) {
-            console.log('BBBBBBBBBBBBBBBBB');
-
-            if (passwordInfo.newPassword !== passwordInfo.verificationPassword || passwordInfo.newPassword === passwordInfo.currentPassword) {
-                console.log('dddddddddddddd');
-                return false;
-            }
-
             if (passwordInfo.newPassword === passwordInfo.verificationPassword) {
-                console.log('CCCCCCCCCCCCCCCCCC');
                 let newPassword = await new db.mongodb.CRUD('twitter', 'users').update(
                     { userID: passwordInfo.userID },
-                    { $set: { password: passwordInfo.newPassword } }
+                    { $set: { password: passwordInfo.newPassword, updated_password: passwordInfo.updated_password } }
                 );
 
                 if (newPassword.modifiedCount > 0) {
@@ -396,18 +122,14 @@ module.exports.updatePassword = async (passwordInfo) => {
                 }
                 return false;
             }
-
             return false;
         }
-
         return false;
     } catch (error) {
         helpers.error.logger(error);
         throw error;
     }
 };
-
-
 
 module.exports.deleteUser = async (user) => {
     try {
@@ -430,7 +152,176 @@ module.exports.deleteUser = async (user) => {
     }
 };
 
+module.exports.postBlock = async (user) => {
+    try {
+        let block = await new db.mongodb.CRUD('twitter', 'block').insert(user);
 
+        if ((block && block.length > 0)) {
+            let isFollowing = await new db.mongodb.CRUD('twitter', 'follows').find({
+                follower: user.myUserID,
+                following: user.yourUserID,
+            });
+
+            let isFollower = await new db.mongodb.CRUD('twitter', 'follows').find({
+                following: user.myUserID,
+                follower: user.yourUserID,
+            });
+
+            let deleteFollows = await new db.mongodb.CRUD('twitter', 'follows').delete({
+                $or: [
+                    {
+                        follower: user.myUserID,
+                        following: user.yourUserID,
+                    },
+                    {
+                        following: user.myUserID,
+                        follower: user.yourUserID,
+                    }
+                ]
+
+            });
+            console.log(deleteFollows);
+
+            if (isFollowing && isFollowing.length > 0) {
+
+                let followingSize = new db.mongodb.CRUD('twitter', 'users').update({ userID: user.myUserID }, {
+
+                    $inc: { followingSize: -1 }
+                });
+
+                let followerSize = new db.mongodb.CRUD('twitter', 'users').update({ userID: user.yourUserID }, {
+
+                    $inc: { followerSize: -1 }
+                });
+
+                console.log(followingSize);
+                console.log(followerSize);
+
+                if (block !== false) {
+                    if (block.length > 0) {
+                        const followID = block[0].followID;
+                        return {
+                            error: 'Kullanıcı engellendi',
+                            followID: followID
+                        };
+                    }
+                    return null;
+                }
+            }
+
+            if (isFollower && isFollower.length > 0) {
+
+                let followingSize = new db.mongodb.CRUD('twitter', 'users').update({ userID: user.yourUserID }, {
+
+                    $inc: { followingSize: -1 }
+                });
+
+                let followerSize = new db.mongodb.CRUD('twitter', 'users').update({ userID: user.myUserID }, {
+
+                    $inc: { followerSize: -1 }
+                });
+
+                console.log(followingSize);
+                console.log(followerSize);
+
+                if (block !== false) {
+                    if (block.length > 0) {
+                        return block[0];
+                    }
+                    return null;
+                }
+            }
+
+        }
+
+        if (block !== false) {
+            if (block.length > 0) {
+                return block[0];
+            }
+            return null;
+        }
+
+        return false;
+
+    } catch (error) {
+        helpers.error.logger(error);
+        throw error;
+    }
+};
+
+module.exports.deleteBlock = async (user) => {
+    try {
+        console.log(JSON.stringify(user));
+        let query = await new db.mongodb.CRUD('twitter', 'users').delete({ blockedID: user.blockedID },
+        );
+
+        if (query !== false) {
+            if (query.length > 0) {
+                return query[0];
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
+module.exports.getBlocked = async (user) => {
+    try {
+        console.log(JSON.stringify(user));
+        let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+            {
+                '$match': {
+                    'userID': user.userID
+                }
+            }, {
+                '$project': {
+                    'userID': true
+                }
+            }, {
+                '$lookup': {
+                    'from': 'block',
+                    'localField': 'userID',
+                    'foreignField': 'myUserID',
+                    'pipeline': [
+                        {
+                            '$lookup': {
+                                'from': 'users',
+                                'localField': 'yourUserID',
+                                'foreignField': 'userID',
+                                'pipeline': [
+                                    {
+                                        '$project': {
+                                            'userID': true,
+                                            'name': true,
+                                            'nickname': true,
+                                            'profilePhoto': true,
+                                            '_id': false
+                                        }
+                                    }
+                                ],
+                                'as': 'userDetails'
+                            }
+                        }
+                    ],
+                    'as': 'postBlockedUser'
+                }
+            }
+        ]);
+
+        if (query !== false) {
+            if (query.length > 0) {
+                return query[0, 0];
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
 module.exports.getUserInfo = async (user) => {
     try {
         console.log(JSON.stringify(user));
@@ -448,3 +339,34 @@ module.exports.getUserInfo = async (user) => {
         return false;
     }
 };
+
+function normalizeString(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); // türkçe karakter normalizasyonu
+}
+
+module.exports.postSearch = async (search) => {
+    try {
+
+        let temizlenmisNickname = normalizeString(search.nickname.replace(/ /g, '')); //boşluk kaldırma
+
+        let regexPattern = new RegExp(temizlenmisNickname, 'i'); // 'i' flag büyük/küçük harf duyarsız arama yapar
+
+        let kullaniciVarMi = await new db.mongodb.CRUD('twitter', 'users')
+            .find({ nickname: { $regex: regexPattern } }, [search.skip, search.limit], { userID: true, nickname: true });
+
+        if (kullaniciVarMi !== false) {
+            if (kullaniciVarMi.length > 0) {
+
+                kullaniciVarMi.sort((a, b) => a.nickname.localeCompare(b.nickname));//  alfabatik sıralama
+
+                return kullaniciVarMi;
+            }
+            return null;
+        }
+        return false;
+
+    } catch (error) {
+        helpers.error.logger(error);
+    }
+};
+

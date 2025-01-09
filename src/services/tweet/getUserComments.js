@@ -1,37 +1,29 @@
 const constants = require('../../constants');
-
 const helpers = require('../../helpers');
-
 const repositories = require('../../repositories');
 
-
 module.exports = async (req, res) => {
-
     let responseBody = constants.response.DEFAULT();
 
     try {
+        let skip = req.body.skip;
+        let limit = req.body.limit;
 
-        let commentID = repositories.tweet.randomId();
-        const tweetType = 3;
-
-        let comment = {
-            userID: req.body.userID,
-            tweetType: tweetType,
-            tweetID: req.body.tweetID,
-            commentID: commentID,
-            tweet: req.body.tweet,
-            created_Date_time: new Date()
+        let userComment = {
+            myUserID: req.body.myUserID,
+            yourUserID: req.body.yourUserID,
+            skip: skip,
+            limit: limit,
 
         };
 
+        let getUserComments = await repositories.tweet.getUserComments(userComment);
 
-        let comments = await repositories.tweet.postComment(comment);
-
-        if (!comments) {
+        if (!getUserComments) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { comments };
+        responseBody.result = { userComments: getUserComments };
 
     } catch (error) {
         helpers.error.logger(error);

@@ -11,16 +11,21 @@ module.exports = async (req, res) => {
 
     try {
 
-        let reTweetID = repositories.tweet.randomId();
-        let tweetType = 5;
+        let tweetID = repositories.tweet.randomId();
+        let tweetType = 3;
 
 
         let reTweet = {
             userID: req.body.userID,
-            tweetID: req.body.tweetID,
-            reTweetID: reTweetID,
+            tweetID: tweetID,
+            belongTo: req.body.belongTo,
             tweetType: tweetType,
-            created_Date_time: new Date()
+            reTweetSize: 0,
+            reTweeters: [],
+            quotersSize: 0,
+            quoters: [],
+            likeSize: 0,
+            created_at: helpers.date.moment.timestamp()
         };
 
         let reTweets = await repositories.tweet.postRetweet(reTweet);

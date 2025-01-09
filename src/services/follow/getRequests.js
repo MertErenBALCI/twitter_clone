@@ -6,33 +6,27 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let followID = repositories.user.randomId();
-        let requestID = repositories.user.randomId();
+        let skip = req.body.skip;
+        let limit = req.body.limit;
 
-        let follow = {
-            followID: followID,
-            requestID: requestID,
+        let myUserID = {
             myUserID: req.body.myUserID,
-            yourUserID: req.body.yourUserID,
-            created_Date_time: new Date()
+            userID: req.body.userID,
+            skip: skip,
+            limit: limit,
         };
 
-        if (req.body.myUserID === req.body.yourUserID) {
-            throw new helpers.error.Conflict();
-        }
+        let requests = await repositories.follow.getRequests(myUserID);
 
-        let follows = await repositories.user.follow(follow);
-
-        if (!follows) {
+        if (!requests) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { follows };
+        responseBody.result = { requests };
 
     } catch (error) {
         helpers.error.logger(error);
         responseBody = helpers.error.errorHandler(error);
-
     }
 
     return res.status(responseBody.httpStatus).json(responseBody);

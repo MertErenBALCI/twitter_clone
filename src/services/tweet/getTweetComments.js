@@ -6,8 +6,13 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
+        let skip = req.body.skip;
+        let limit = req.body.limit;
+
         let TweetComments = {
             tweetID: req.body.tweetID,
+            skip: skip,
+            limit: limit,
         };
 
         let getTweetComments = await repositories.tweet.getTweetComments(TweetComments);

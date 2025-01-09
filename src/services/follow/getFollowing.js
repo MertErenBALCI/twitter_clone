@@ -6,17 +6,22 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
+        let skip = req.body.skip;
+        let limit = req.body.limit;
+
         let myUserID = {
-            following: req.body.myUserID,
+            follower: req.body.myUserID,
+            skip: skip,
+            limit: limit,
         };
 
-        let follower = await repositories.user.getFollower(myUserID);
+        let following = await repositories.follow.getFollowing(myUserID);
 
-        if (!follower) {
+        if (!following) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { follower };
+        responseBody.result = { following };
 
     } catch (error) {
         helpers.error.logger(error);

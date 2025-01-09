@@ -14,10 +14,10 @@ module.exports = async (req, res) => {
 
 
         let like = {
+            likedID: likedID,
             userID: req.body.userID,
             tweetID: req.body.tweetID,
-            likedID: likedID,
-            created_Date_time: new Date()
+            created_at: helpers.date.moment.timestamp()
 
         };
 

@@ -22,21 +22,14 @@ router.post('/login', [
 
 
 router.post('/register', [controller.user.register], services.user.register);
-
-router.post('/messages', [middlewares.authorization, controller.user.message], services.user.message);
-
 router.post('/updateUser', [middlewares.authorization, controller.user.updateUser], services.user.updateUser);
 router.post('/updatePassword', [middlewares.authorization, controller.user.updatePassword], services.user.updatePassword);
 router.post('/deleteUser', [middlewares.authorization, controller.user.deleteUser], services.user.deleteUser);
-router.post('/getUserInfo', [controller.user.getUserInfo], services.user.getUserInfo);
-
-router.post('/follow', [middlewares.authorization, controller.user.follow], services.user.follow);
-router.get('/getRequests', [controller.user.getRequests], services.user.getRequests);
-router.post('/acceptFollowRequest', [controller.user.acceptFollowRequest], services.user.acceptFollowRequest);
-router.post('/deleteFollowRequest', [controller.user.deleteFollowRequest], services.user.deleteFollowRequest);
-router.get('/getFollower', [controller.user.getFollower], services.user.getFollower);
-router.get('/getFollowing', [controller.user.getFollowing], services.user.getFollowing);
-router.post('/deleteFollow', [middlewares.authorization, controller.user.deleteFollow], services.user.deleteFollow);
+router.get('/getUserInfo', [middlewares.authorization, controller.user.getUserInfo], services.user.getUserInfo);
+router.post('/postSearch', [controller.user.postSearch], services.user.postSearch);
+router.post('/postBlock', [middlewares.authorization, controller.user.postBlock], services.user.postBlock);
+router.post('/deleteBlock', [middlewares.authorization, controller.user.deleteBlock], services.user.deleteBlock);
+router.post('/getBlocked', [controller.user.getBlocked], services.user.getBlocked);
 
 
 

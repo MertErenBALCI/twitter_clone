@@ -1,10 +1,10 @@
 const constants = require('../../constants');
 
 class NotFound extends Error {
-    constructor(errorId = -404){
+    constructor(errorId = -404) {
         let error = constants.error.error_tr.find(e => e.errorCode === errorId);
 
-        if(!error) {
+        if (!error) {
             error = {
                 status: false,
                 desc: 'Error code bulunamadı !!!',
@@ -22,7 +22,7 @@ class NotFound extends Error {
         this.errorCode = error.errorCode;
         this.httpStatus = 404;
         this.result = {};
-       
+
     }
 
 }

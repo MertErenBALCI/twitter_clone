@@ -16,31 +16,34 @@ const middlewares = require('../../middlewares');
 
 
 router.get('/getUserTweets', [controller.tweet.getUserTweets], services.tweet.getUserTweets);
-router.post('/postTweet', [middlewares.authorization, controller.tweet.postTweet], services.tweet.postTweet);
-router.post('/updateTweet', [controller.tweet.updateTweet], services.tweet.updateTweet);
-router.post('/deleteTweet', [controller.tweet.deleteTweet], services.tweet.deleteTweet);
 
-//router.post('/likeTweet', [middlewares.authorization, controller.tweet.postTweet], services.tweet.postTweet);
-router.post('/postComment', [controller.tweet.postComment], services.tweet.postComment);
-router.post('/postCommenttoComment', [controller.tweet.postCommenttoComment], services.tweet.postCommenttoComment);
+router.get('/getUserComments', [controller.tweet.getUserComments], services.tweet.getUserComments);
+router.post('/postTweet', [middlewares.authorization, controller.tweet.postTweet], services.tweet.postTweet);
+router.post('/updateTweet', [middlewares.authorization, controller.tweet.updateTweet], services.tweet.updateTweet);
+router.post('/deleteTweet', [middlewares.authorization, controller.tweet.deleteTweet], services.tweet.deleteTweet);
+
+router.post('/postComment', [middlewares.authorization, controller.tweet.postComment], services.tweet.postComment);
 router.get('/getTweetComments', [controller.tweet.getTweetComments], services.tweet.getTweetComments);
 
-router.get('/getTweetCommenttoComments', [controller.tweet.getTweetCommenttoComments], services.tweet.getTweetCommenttoComments);
+router.get('/getTweetLikers', [controller.tweet.getTweetLikers], services.tweet.getTweetLikers);
+router.get('/getTweetRetweeters', [controller.tweet.getTweetRetweeters], services.tweet.getTweetRetweeters);
+router.get('/getTweetQuote', [controller.tweet.getTweetQuote], services.tweet.getTweetQuote);
 
-router.post('/postRetweet', [controller.tweet.postRetweet], services.tweet.postRetweet);
-router.post('/deleteRetweet', [controller.tweet.deleteRetweet], services.tweet.deleteRetweet);
+router.post('/postRetweet', [middlewares.authorization, controller.tweet.postRetweet], services.tweet.postRetweet);
 
-router.post('/postQuote', [controller.tweet.postQuote], services.tweet.postQuote);
-router.post('/deleteQuote', [controller.tweet.deleteQuote], services.tweet.deleteQuote);
-router.post('/updateQuote', [controller.tweet.updateQuote], [services.tweet.updateQuote]);
+router.post('/postQuote', [middlewares.authorization, controller.tweet.postQuote], services.tweet.postQuote);
+router.post('/postLike', [middlewares.authorization, controller.tweet.postLike], services.tweet.postLike);
+router.post('/deleteLike', [middlewares.authorization, controller.tweet.deleteLike], services.tweet.deleteLike);
 
 
-router.post('/postLike', [controller.tweet.postLike], services.tweet.postLike);
-router.post('/deleteLike', [controller.tweet.deleteLike], services.tweet.deleteLike);
+router.get('/getHomePage', [middlewares.authorization, controller.tweet.getHomePage], [services.tweet.getHomePage]);
 
-router.post('/getHomePage', [controller.tweet.getHomePage], [services.tweet.getHomePage]);
+router.get('/getProfilePage', [controller.tweet.getProfilePage], [services.tweet.getProfilePage]);
+router.get('/getMyLike', [middlewares.authorization, controller.tweet.getMyLike], [services.tweet.getMyLike]);
 
-router.post('/getProfilePage', [controller.tweet.getProfilePage], [services.tweet.getProfilePage]);
+
+
+
 
 
 

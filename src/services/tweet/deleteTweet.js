@@ -9,6 +9,8 @@ module.exports = async (req, res) => {
         let deleteTweet = {
             userID: req.body.userID,
             tweetID: req.body.tweetID,
+            belongTo: req.body.belongTo,
+            tweetType: req.body.tweetType
         };
 
         let deletedTweet = await repositories.tweet.deleteTweet(deleteTweet);
@@ -16,7 +18,6 @@ module.exports = async (req, res) => {
         if (!deletedTweet) {
             throw new helpers.error.Conflict();
         }
-
         responseBody.result = { user: deletedTweet };
 
     } catch (error) {

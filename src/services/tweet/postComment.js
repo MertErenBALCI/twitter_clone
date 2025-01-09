@@ -11,16 +11,23 @@ module.exports = async (req, res) => {
 
     try {
 
-        let commentID = repositories.tweet.randomId();
+        let tweetID = repositories.tweet.randomId();
         const tweetType = 2;
 
         let comment = {
             userID: req.body.userID,
             tweetType: tweetType,
-            tweetID: req.body.tweetID,
-            commentID: commentID,
+            belongTo: req.body.belongTo,
+            tweetID: tweetID,
             tweet: req.body.tweet,
-            created_Date_time: new Date()
+            reTweetSize: 0,
+            reTweeters: [],
+            quotersSize: 0,
+            quoters: [],
+            likeSize: 0,
+            commenters: [],
+            commentSize: 0,
+            created_at: helpers.date.moment.timestamp()
 
         };
 

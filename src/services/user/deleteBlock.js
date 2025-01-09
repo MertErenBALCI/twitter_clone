@@ -6,17 +6,19 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let myUserID = {
-            myUserID: req.body.myUserID,
+
+        let user = {
+            blockedID: req.body.blockedID,
+            userID: req.body.userID,
         };
 
-        let requests = await repositories.user.getRequests(myUserID);
+        let deletedBlock = await repositories.user.deleteBlock(user);
 
-        if (!requests) {
-            throw new helpers.error.NotFound(2);
+        if (!deletedBlock) {
+            throw new helpers.error.Conflict();
         }
 
-        responseBody.result = { requests };
+        responseBody.result = { deletedBlock };
 
     } catch (error) {
         helpers.error.logger(error);

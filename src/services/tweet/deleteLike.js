@@ -7,9 +7,10 @@ module.exports = async (req, res) => {
 
     try {
         let deleteLike = {
+            likedID: req.body.likedID,
             userID: req.body.userID,
             tweetID: req.body.tweetID,
-            likedID: req.body.likedID
+
         };
 
         let deletedLike = await repositories.tweet.deleteLike(deleteLike);

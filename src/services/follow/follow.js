@@ -6,28 +6,33 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let skip = req.body.skip;
-        let limit = req.body.limit;
+        let followID = repositories.follow.randomId();
+        let requestID = repositories.follow.randomId();
 
-        let userTweets = {
+        let follow = {
+            followID: followID,
+            requestID: requestID,
             myUserID: req.body.myUserID,
             yourUserID: req.body.yourUserID,
-            skip: skip,
-            limit: limit,
-
+            created_at: helpers.date.moment.timestamp()
         };
 
-        let getUserTweets = await repositories.tweet.getUserTweets(userTweets);
+        if (req.body.myUserID === req.body.yourUserID) {
+            throw new helpers.error.Conflict();
+        }
 
-        if (!getUserTweets) {
+        let follows = await repositories.follow.follow(follow);
+
+        if (!follows) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { userTweets: getUserTweets };
+        responseBody.result = { follows };
 
     } catch (error) {
         helpers.error.logger(error);
         responseBody = helpers.error.errorHandler(error);
+
     }
 
     return res.status(responseBody.httpStatus).json(responseBody);

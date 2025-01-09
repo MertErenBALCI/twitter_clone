@@ -1,3 +1,4 @@
+
 const constants = require('../../constants');
 const helpers = require('../../helpers');
 const repositories = require('../../repositories');
@@ -6,17 +7,20 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let myUserID = {
-            follower: req.body.myUserID,
+        let followID = {
+            followID: req.body.followID,
+            myUserID: req.body.myUserID,
+            yourUserID: req.body.yourUserID
+
         };
 
-        let following = await repositories.user.getFollowing(myUserID);
+        let deletedFollow = await repositories.follow.deleteFollow(followID);
 
-        if (!following) {
-            throw new helpers.error.NotFound(2);
+        if (!deletedFollow) {
+            throw new helpers.error.Conflict();
         }
 
-        responseBody.result = { following };
+        responseBody.result = { deletedFollow };
 
     } catch (error) {
         helpers.error.logger(error);

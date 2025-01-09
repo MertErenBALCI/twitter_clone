@@ -9,21 +9,19 @@ module.exports = async (req, res) => {
         let skip = req.body.skip;
         let limit = req.body.limit;
 
-        let userTweets = {
-            myUserID: req.body.myUserID,
-            yourUserID: req.body.yourUserID,
+        let myLike = {
+            userID: req.body.userID,
             skip: skip,
             limit: limit,
-
         };
 
-        let getUserTweets = await repositories.tweet.getUserTweets(userTweets);
+        let getMyTweetLikes = await repositories.tweet.getMyLike(myLike);
 
-        if (!getUserTweets) {
+        if (!getMyTweetLikes) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { userTweets: getUserTweets };
+        responseBody.result = { myTweetLikes: getMyTweetLikes };
 
     } catch (error) {
         helpers.error.logger(error);

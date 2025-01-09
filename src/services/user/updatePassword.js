@@ -10,7 +10,8 @@ module.exports = async (req, res) => {
             userID: req.body.userID,
             currentPassword: req.body.currentPassword,
             newPassword: req.body.newPassword,
-            verificationPassword: req.body.verificationPassword
+            verificationPassword: req.body.verificationPassword,
+            updated_password_at: helpers.date.moment.timestamp()
         };
 
         let isNewPassword = await repositories.user.updatePassword(passwordInfo);

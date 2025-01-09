@@ -6,19 +6,24 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let deleteRetweet = {
+        let skip = req.body.skip;
+        let limit = req.body.limit;
+
+        let user = {
             userID: req.body.userID,
-            reTweetID: req.body.reTweetID,
-            tweetID: req.bod.tweetID,
+            created_at: helpers.date.moment.timestamp(),
+            skip: skip,
+            limit: limit,
+
         };
 
-        let deletedRetweet = await repositories.tweet.deleteRetweet(deleteRetweet);
+        let deletedUser = await repositories.user.getBlocked(user);
 
-        if (!deletedRetweet) {
+        if (!deletedUser) {
             throw new helpers.error.Conflict();
         }
 
-        responseBody.result = { deletedRetweet };
+        responseBody.result = { user: deletedUser };
 
     } catch (error) {
         helpers.error.logger(error);

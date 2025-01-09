@@ -6,8 +6,13 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
+        let skip = req.body.skip;
+        let limit = req.body.limit;
+
         let ProfilePage = {
             userID: req.body.userID,
+            skip: skip,
+            limit: limit,
         };
 
         let ProfilePages = await repositories.tweet.getProfilePage(ProfilePage);

@@ -1,4 +1,3 @@
-
 const constants = require('../../constants');
 const helpers = require('../../helpers');
 const repositories = require('../../repositories');
@@ -7,19 +6,22 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let deleteQuote = {
-            userID: req.body.userID,
-            quoteID: req.body.quoteID,
-            tweetID: req.body.tweetID
+        let skip = req.body.skip;
+        let limit = req.body.limit;
+
+        let myUserID = {
+            following: req.body.myUserID,
+            skip: skip,
+            limit: limit,
         };
 
-        let deletedQuote = await repositories.tweet.deleteQuote(deleteQuote);
+        let follower = await repositories.follow.getFollower(myUserID);
 
-        if (!deletedQuote) {
-            throw new helpers.error.Conflict();
+        if (!follower) {
+            throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { user: deletedQuote };
+        responseBody.result = { follower };
 
     } catch (error) {
         helpers.error.logger(error);

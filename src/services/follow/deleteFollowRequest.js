@@ -1,4 +1,3 @@
-
 const constants = require('../../constants');
 const helpers = require('../../helpers');
 const repositories = require('../../repositories');
@@ -7,25 +6,26 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        const tweetType = 4;
 
-        let updateQuote = {
-            userID: req.body.userID,
-            quoteID: req.body.quoteID,
-            tweetType: tweetType,
-            tweet: req.body.tweet,
+        let okeyRequest = {
+            requestID: req.body.requestID,
+            requester: req.body.yourUserID,
+            reciever: req.body.myUserID,
         };
 
-        let updateQuotes = await repositories.tweet.updateQuote(updateQuote);
 
-        if (!updateQuotes) {
+        let isOkeyRequest = await repositories.follow.deleteFollowRequest(okeyRequest);
+
+        if (!isOkeyRequest) {
             throw new helpers.error.NotFound(2);
         }
 
-        responseBody.result = { updateQuotes };
+        responseBody.result = { isOkeyRequest };
+
     } catch (error) {
         helpers.error.logger(error);
         responseBody = helpers.error.errorHandler(error);
+
     }
 
     return res.status(responseBody.httpStatus).json(responseBody);

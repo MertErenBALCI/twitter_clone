@@ -1,3 +1,4 @@
+
 const constants = require('../../constants');
 const helpers = require('../../helpers');
 const repositories = require('../../repositories');
@@ -6,17 +7,20 @@ module.exports = async (req, res) => {
     let responseBody = constants.response.DEFAULT();
 
     try {
-        let TweetCommenttoComments = {
-            tweetID: req.body.tweetID,
+        let followID = {
+            followID: req.body.followID,
+            myUserID: req.body.myUserID,
+            yourUserID: req.body.yourUserID
+
         };
 
-        let getTweetCommenttoComments = await repositories.tweet.getTweetCommenttoComments(TweetCommenttoComments);
+        let deletedFollow = await repositories.follow.deleteFollower(followID);
 
-        if (!getTweetCommenttoComments) {
-            throw new helpers.error.NotFound(2);
+        if (!deletedFollow) {
+            throw new helpers.error.Conflict();
         }
 
-        responseBody.result = { TweetCommenttoComments: getTweetCommenttoComments };
+        responseBody.result = { deletedFollow };
 
     } catch (error) {
         helpers.error.logger(error);

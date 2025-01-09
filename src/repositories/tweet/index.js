@@ -12,10 +12,146 @@ module.exports.randomId = () => {
 module.exports.getUserTweets = async (userTweets) => {
     try {
         console.log(JSON.stringify(userTweets));
+        let isBlocked = await new db.mongodb.CRUD('twitter', 'follows').find({
+
+
+            myUserID: userTweets.myUserID,
+            yourUserID: userTweets.yourUserID,
+        });
+
+        if ((isBlocked && isBlocked.length > 0)) {
+            return false;
+
+        }
+
+        let isUserTypeTrue = await new db.mongodb.CRUD('twitter', 'users').find({
+
+            userID: userTweets.yourUserID,
+            userType: true
+        }
+        );
+        if ((isUserTypeTrue && isUserTypeTrue.length > 0)) {
+            let isFollow = await new db.mongodb.CRUD('twitter', 'follows').find({
+                follower: userTweets.myUserID,
+                following: userTweets.yourUserID,
+            }
+            );
+
+            if ((isFollow && isFollow.length > 0) || userTweets.myUserID == userTweets.yourUserID) {
+                let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+                    {
+                        '$match': {
+                            'userID': userTweets.yourUserID,
+                        }
+                    }, {
+                        '$project': {
+                            'password': false
+                        }
+                    }, {
+                        '$lookup': {
+                            'from': 'tweet',
+                            'localField': 'userID',
+                            'foreignField': 'userID',
+                            'pipeline': [
+                                {
+                                    '$match': {
+                                        'tweetType': {
+                                            '$in': [
+                                                1, 3, 4
+                                            ]
+                                        }
+                                    }
+                                }, {
+                                    '$lookup': {
+                                        'from': 'tweet',
+                                        'localField': 'belongTo',
+                                        'foreignField': 'tweetID',
+                                        'as': 'relatedTweets'
+                                    }
+                                }, {
+                                    '$addFields': {
+                                        'relatedTweets': {
+                                            '$cond': {
+                                                'if': {
+                                                    '$in': [
+                                                        '$tweetType', [
+                                                            3, 4
+                                                        ]
+                                                    ]
+                                                },
+                                                'then': '$relatedTweets',
+                                                'else': []
+                                            }
+                                        }
+                                    }
+                                }, {
+                                    '$unwind': {
+                                        'path': '$relatedTweets',
+                                        'preserveNullAndEmptyArrays': true
+                                    }
+                                }, {
+                                    '$lookup': {
+                                        'from': 'users',
+                                        'localField': 'relatedTweets.userID',
+                                        'foreignField': 'userID',
+                                        'as': 'relatedTweets.userDetails'
+                                    }
+                                }, {
+                                    '$addFields': {
+                                        'relatedTweets.userDetails': {
+                                            '$cond': {
+                                                'if': {
+                                                    '$eq': [
+                                                        '$userType', 1
+                                                    ]
+                                                },
+                                                'then': [],
+                                                'else': '$relatedTweets.userDetails'
+                                            }
+                                        }
+                                    }
+                                }, {
+                                    '$project': {
+                                        'relatedTweets.userDetails.userType': 0,
+                                        'relatedTweets.userDetails.email': 0,
+                                        'relatedTweets.userDetails.created_Date_time': 0,
+                                        'relatedTweets.userDetails.birthday': 0,
+                                        'relatedTweets.userDetails.profileHeaderPhoto': 0,
+                                        'relatedTweets.userDetails.bio': 0,
+                                        'relatedTweets.userDetails.followerSize': 0,
+                                        'relatedTweets.userDetails.followingSize': 0,
+                                        'relatedTweets.userDetails.password': 0
+                                    }
+                                },
+
+                                { '$skip': userTweets.skip },
+                                { '$limit': userTweets.limit }
+                            ],
+                            'as': 'tweets'
+                        }
+                    }
+                ]);
+
+                if (query !== false) {
+                    if (query.length > 0) {
+                        return query;
+                    }
+                    return null;
+                }
+
+            }
+
+            return false;
+        }
+
         let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
             {
                 '$match': {
-                    'userID': userTweets.userID
+                    'userID': userTweets.yourUserID,
+                }
+            }, {
+                '$project': {
+                    'password': false
                 }
             }, {
                 '$lookup': {
@@ -25,11 +161,83 @@ module.exports.getUserTweets = async (userTweets) => {
                     'pipeline': [
                         {
                             '$match': {
-                                'tweetType': 1
+                                'tweetType': {
+                                    '$in': [
+                                        1, 3, 4
+                                    ]
+                                }
+                            }
+                        }, {
+                            '$lookup': {
+                                'from': 'tweet',
+                                'localField': 'belongTo',
+                                'foreignField': 'tweetID',
+                                'as': 'relatedTweets'
+                            }
+                        }, {
+                            '$addFields': {
+                                'relatedTweets': {
+                                    '$cond': {
+                                        'if': {
+                                            '$in': [
+                                                '$tweetType', [
+                                                    3, 4
+                                                ]
+                                            ]
+                                        },
+                                        'then': '$relatedTweets',
+                                        'else': []
+                                    }
+                                }
+                            }
+                        }, {
+                            '$unwind': {
+                                'path': '$relatedTweets',
+                                'preserveNullAndEmptyArrays': true
+                            }
+                        }, {
+                            '$lookup': {
+                                'from': 'users',
+                                'localField': 'relatedTweets.userID',
+                                'foreignField': 'userID',
+                                'as': 'relatedTweets.userDetails'
+                            }
+                        }, {
+                            '$addFields': {
+                                'relatedTweets.userDetails': {
+                                    '$cond': {
+                                        'if': {
+                                            '$eq': [
+                                                '$userType', 1
+                                            ]
+                                        },
+                                        'then': [],
+                                        'else': '$relatedTweets.userDetails'
+                                    }
+                                }
+                            }
+                        }, {
+                            '$project': {
+                                'relatedTweets.userDetails.userType': 0,
+                                'relatedTweets.userDetails.email': 0,
+                                'relatedTweets.userDetails.created_Date_time': 0,
+                                'relatedTweets.userDetails.birthday': 0,
+                                'relatedTweets.userDetails.profileHeaderPhoto': 0,
+                                'relatedTweets.userDetails.bio': 0,
+                                'relatedTweets.userDetails.followerSize': 0,
+                                'relatedTweets.userDetails.followingSize': 0,
+                                'relatedTweets.userDetails.password': 0
+                            }
+                        }, {
+                            '$group': {
+                                '_id': '$_id',
+                                'tweets': {
+                                    '$push': '$$ROOT'
+                                }
                             }
                         }
                     ],
-                    'as': 'match'
+                    'as': 'tweets'
                 }
             }
         ]);
@@ -40,20 +248,247 @@ module.exports.getUserTweets = async (userTweets) => {
             }
             return null;
         }
+
         return false;
+
     } catch (error) {
         helpers.error.logger(error);
         return false;
     }
 };
 
+module.exports.getUserComments = async (userTweets) => {
+    try {
+        console.log(JSON.stringify(userTweets));
+
+        let isUserTypeTrue = await new db.mongodb.CRUD('twitter', 'users').find({
+
+            userID: userTweets.yourUserID,
+            userType: true
+        }
+        );
+
+        if ((isUserTypeTrue && isUserTypeTrue.length > 0)) {
+
+            let isFollow = await new db.mongodb.CRUD('twitter', 'follows').find({
+                follower: userTweets.myUserID,
+                following: userTweets.yourUserID,
+            }
+            );
+
+            if ((isFollow && isFollow.length > 0) || userTweets.myUserID == userTweets.yourUserID) {
+                let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+                    {
+                        '$match': {
+                            'userID': userTweets.yourUserID,
+                        }
+                    }, {
+                        '$project': {
+                            'password': false
+                        }
+                    }, {
+                        '$lookup': {
+                            'from': 'tweet',
+                            'localField': 'userID',
+                            'foreignField': 'userID',
+                            'pipeline': [
+                                {
+                                    '$match': {
+                                        'tweetType': {
+                                            '$in': [
+                                                2
+                                            ]
+                                        }
+                                    }
+                                }, {
+                                    '$lookup': {
+                                        'from': 'tweet',
+                                        'let': {
+                                            'belongToTweetID': '$belongTo'
+                                        },
+                                        'pipeline': [
+                                            {
+                                                '$match': {
+                                                    '$expr': {
+                                                        '$eq': [
+                                                            '$tweetID', '$$belongToTweetID'
+                                                        ]
+                                                    }
+                                                }
+                                            }, {
+                                                '$lookup': {
+                                                    'from': 'users',
+                                                    'localField': 'userID',
+                                                    'foreignField': 'userID',
+                                                    'as': 'userDetails'
+                                                }
+                                            }, {
+                                                '$project': {
+                                                    'userDetails.userType': 0,
+                                                    'userDetails.email': 0,
+                                                    'userDetails.created_Date_time': 0,
+                                                    'userDetails.birthday': 0,
+                                                    'userDetails.profileHeaderPhoto': 0,
+                                                    'userDetails.bio': 0,
+                                                    'userDetails.followerSize': 0,
+                                                    'userDetails.followingSize': 0,
+                                                    'userDetails.password': 0
+                                                }
+                                            }
+                                        ],
+                                        'as': 'relatedTweets'
+                                    }
+                                }, {
+                                    '$addFields': {
+                                        'relatedTweets': {
+                                            '$cond': {
+                                                'if': {
+                                                    '$in': [
+                                                        '$tweetType', [
+                                                            2
+                                                        ]
+                                                    ]
+                                                },
+                                                'then': '$relatedTweets',
+                                                'else': []
+                                            }
+                                        }
+                                    }
+                                },
+
+                                { '$skip': userTweets.skip },
+                                { '$limit': userTweets.limit }
+                            ],
+                            'as': 'tweets'
+                        }
+                    }
+                ]);
+
+                if (query !== false) {
+                    if (query.length > 0) {
+                        return query;
+                    }
+                    return null;
+                }
+
+            }
+
+            return false;
+
+        }
+
+        let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+            {
+                '$match': {
+                    'userID': userTweets.yourUserID,
+                }
+            }, {
+                '$project': {
+                    'password': false
+                }
+            }, {
+                '$lookup': {
+                    'from': 'tweet',
+                    'localField': 'userID',
+                    'foreignField': 'userID',
+                    'pipeline': [
+                        {
+                            '$match': {
+                                'tweetType': {
+                                    '$in': [
+                                        2
+                                    ]
+                                }
+                            }
+                        }, {
+                            '$lookup': {
+                                'from': 'tweet',
+                                'let': {
+                                    'belongToTweetID': '$belongTo'
+                                },
+                                'pipeline': [
+                                    {
+                                        '$match': {
+                                            '$expr': {
+                                                '$eq': [
+                                                    '$tweetID', '$$belongToTweetID'
+                                                ]
+                                            }
+                                        }
+                                    }, {
+                                        '$lookup': {
+                                            'from': 'users',
+                                            'localField': 'userID',
+                                            'foreignField': 'userID',
+                                            'as': 'userDetails'
+                                        }
+                                    }, {
+                                        '$project': {
+                                            'userDetails.userType': 0,
+                                            'userDetails.email': 0,
+                                            'userDetails.created_Date_time': 0,
+                                            'userDetails.birthday': 0,
+                                            'userDetails.profileHeaderPhoto': 0,
+                                            'userDetails.bio': 0,
+                                            'userDetails.followerSize': 0,
+                                            'userDetails.followingSize': 0,
+                                            'userDetails.password': 0
+                                        }
+                                    }
+                                ],
+                                'as': 'relatedTweets'
+                            }
+                        }, {
+                            '$addFields': {
+                                'relatedTweets': {
+                                    '$cond': {
+                                        'if': {
+                                            '$in': [
+                                                '$tweetType', [
+                                                    2
+                                                ]
+                                            ]
+                                        },
+                                        'then': '$relatedTweets',
+                                        'else': []
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    'as': 'tweets'
+                }
+            }
+        ]);
+
+        if (query !== false) {
+            if (query.length > 0) {
+                return query;
+            }
+            return null;
+        }
+
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
 module.exports.getHomePage = async (Tweets) => {
     try {
         console.log(JSON.stringify(Tweets));
+
         let query = await new db.mongodb.CRUD('twitter', 'users').aggregate([
             {
                 '$match': {
                     'userID': Tweets.userID
+                }
+            }, {
+                '$project': {
+                    'userID': true,
+                    'name': true,
+                    'nickname': true,
+                    'profilePhoto': true
                 }
             }, {
                 '$lookup': {
@@ -70,12 +505,11 @@ module.exports.getHomePage = async (Tweets) => {
                                     {
                                         '$match': {
                                             'tweetType': {
-                                                '$in': [
-                                                    1, 4, 5
-                                                ]
+                                                '$in': [1, 2, 3, 4]
                                             }
                                         }
-                                    }, {
+                                    },
+                                    {
                                         '$lookup': {
                                             'from': 'users',
                                             'localField': 'userID',
@@ -86,19 +520,52 @@ module.exports.getHomePage = async (Tweets) => {
                                                         'userID': true,
                                                         'name': true,
                                                         'nickname': true,
-                                                        'profilePhoto': true
+                                                        'profilePhoto': true,
+                                                        '_id': false
                                                     }
                                                 }
                                             ],
                                             'as': 'userDetails'
                                         }
+                                    },
+                                    {
+                                        '$lookup': {
+                                            'from': 'tweet',
+                                            'localField': 'belongTo',
+                                            'foreignField': 'tweetID',
+                                            'pipeline': [
+                                                {
+                                                    '$lookup': {
+                                                        'from': 'users',
+                                                        'localField': 'userID',
+                                                        'foreignField': 'userID',
+                                                        'pipeline': [
+                                                            {
+                                                                '$project': {
+                                                                    'userID': true,
+                                                                    'name': true,
+                                                                    'nickname': true,
+                                                                    'profilePhoto': true,
+                                                                    '_id': false
+                                                                }
+                                                            }
+                                                        ],
+                                                        'as': 'userDetails'
+                                                    }
+                                                }
+                                            ],
+                                            'as': 'belongToDetails'
+                                        }
                                     }
                                 ],
-                                'as': 'tweets'
+                                'as': 'userTweets'
                             }
-                        }
+                        },
+
+                        { '$skip': Tweets.skip },
+                        { '$limit': Tweets.limit }
                     ],
-                    'as': 'result'
+                    'as': 'follow'
                 }
             }
         ]);
@@ -150,24 +617,10 @@ module.exports.getProfilePage = async (ProfilePage) => {
                                     ]
                                 }
                             }
-                        }, {
-                            '$lookup': {
-                                'from': 'users',
-                                'localField': 'userID',
-                                'foreignField': 'userID',
-                                'pipeline': [
-                                    {
-                                        '$project': {
-                                            'userID': true,
-                                            'name': true,
-                                            'nickname': true,
-                                            'profilePhoto': true
-                                        }
-                                    }
-                                ],
-                                'as': 'userDetails'
-                            }
-                        }
+                        },
+
+                        { '$skip': ProfilePage.skip },
+                        { '$limit': ProfilePage.limit }
                     ],
                     'as': 'result'
                 }
@@ -189,11 +642,11 @@ module.exports.getProfilePage = async (ProfilePage) => {
 module.exports.getTweetComments = async (TweetComments) => {
     try {
         console.log(JSON.stringify(TweetComments));
-        let comments = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+        let comments = await new db.mongodb.CRUD('twitter', 'tweet').aggregate([
             {
                 '$match': {
                     'tweetID': TweetComments.tweetID,
-                    'tweetType': 1
+
                 }
             }, {
                 '$lookup': {
@@ -210,9 +663,23 @@ module.exports.getTweetComments = async (TweetComments) => {
                                 'from': 'users',
                                 'localField': 'userID',
                                 'foreignField': 'userID',
+                                'pipeline': [
+                                    {
+                                        '$project': {
+                                            'userID': true,
+                                            'name': true,
+                                            'nickname': true,
+                                            'profilePhoto': true,
+                                            '_id': false
+                                        }
+                                    }
+                                ],
                                 'as': 'user'
                             }
-                        }
+                        },
+
+                        { '$skip': TweetComments.skip },
+                        { '$limit': TweetComments.limit }
                     ],
                     'as': 'match'
                 }
@@ -223,6 +690,234 @@ module.exports.getTweetComments = async (TweetComments) => {
         if (comments !== false) {
             if (comments.length > 0) {
                 return comments;
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
+
+module.exports.getTweetLikers = async (TweetLikers) => {
+    try {
+        console.log(JSON.stringify(TweetLikers));
+        let likers = await new db.mongodb.CRUD('twitter', 'tweet').aggregate([
+            {
+                '$match': {
+                    'tweetID': TweetLikers.tweetID
+                }
+            }, {
+                '$lookup': {
+                    'from': 'likes',
+                    'localField': 'tweetID',
+                    'foreignField': 'tweetID',
+                    'pipeline': [
+                        {
+                            '$lookup': {
+                                'from': 'users',
+                                'localField': 'userID',
+                                'foreignField': 'userID',
+                                'pipeline': [
+                                    {
+                                        '$project': {
+                                            'userID': true,
+                                            'name': true,
+                                            'nickname': true,
+                                            'profilePhoto': true,
+                                            '_id': false
+                                        }
+                                    }
+                                ],
+                                'as': 'userDetails'
+                            }
+                        },
+
+                        { '$skip': TweetLikers.skip },
+                        { '$limit': TweetLikers.limit }
+                    ],
+                    'as': 'like'
+                }
+            }
+        ]);
+
+
+        if (likers !== false) {
+            if (likers.length > 0) {
+                return likers;
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
+module.exports.getMyLike = async (myLike) => {
+    try {
+        console.log(JSON.stringify(myLike));
+        let likers = await new db.mongodb.CRUD('twitter', 'users').aggregate([
+            {
+                '$match': {
+                    'userID': myLike.userID
+                }
+            }, {
+                '$project': {
+                    'userID': true
+                }
+            }, {
+                '$lookup': {
+                    'from': 'likes',
+                    'localField': 'userID',
+                    'foreignField': 'userID',
+                    'pipeline': [
+                        {
+                            '$lookup': {
+                                'from': 'tweet',
+                                'localField': 'tweetID',
+                                'foreignField': 'tweetID',
+                                'pipeline': [
+                                    {
+                                        '$lookup': {
+                                            'from': 'users',
+                                            'localField': 'userID',
+                                            'foreignField': 'userID',
+                                            'pipeline': [
+                                                {
+                                                    '$project': {
+                                                        'userID': true,
+                                                        'name': true,
+                                                        'nickname': true,
+                                                        'profilePhoto': true,
+                                                        '_id': false
+                                                    }
+                                                }
+                                            ],
+                                            'as': 'UserDetails'
+                                        }
+                                    }
+                                ],
+                                'as': 'LikedTweet'
+                            }
+                        },
+
+                        { '$skip': myLike.skip },
+                        { '$limit': myLike.limit }
+                    ],
+                    'as': 'LikedTweetID'
+                }
+            }
+        ]);
+
+
+        if (likers !== false) {
+            if (likers.length > 0) {
+                return likers;
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
+module.exports.getTweetRetweeters = async (TweetRetweeters) => {
+    try {
+        console.log(JSON.stringify(TweetRetweeters));
+        let reTweeters = await new db.mongodb.CRUD('twitter', 'tweet').aggregate([
+            {
+                '$match': {
+                    'tweetID': TweetRetweeters.tweetID
+                }
+            }, {
+                '$lookup': {
+                    'from': 'users',
+                    'localField': 'reTweeters',
+                    'foreignField': 'userID',
+                    'pipeline': [
+                        {
+                            '$project': {
+                                'userID': true,
+                                'name': true,
+                                'nickname': true,
+                                'profilePhoto': true,
+                                '_id': false
+                            }
+                        },
+
+                        { '$skip': TweetRetweeters.skip },
+                        { '$limit': TweetRetweeters.limit }
+                    ],
+                    'as': 'reTweetersDetails'
+                }
+            }
+        ]);
+
+        if (reTweeters !== false) {
+            if (reTweeters.length > 0) {
+                return reTweeters;
+            }
+            return null;
+        }
+        return false;
+    } catch (error) {
+        helpers.error.logger(error);
+        return false;
+    }
+};
+
+module.exports.getTweetQuote = async (TweetQuote) => {
+    try {
+        console.log(JSON.stringify(TweetQuote));
+        let reTweeters = await new db.mongodb.CRUD('twitter', 'tweet').aggregate([
+            {
+                '$match': {
+                    'tweetID': TweetQuote.tweetID
+                }
+            }, {
+                '$lookup': {
+                    'from': 'tweet',
+                    'localField': 'tweetID',
+                    'foreignField': 'belongTo',
+                    'pipeline': [
+                        {
+                            '$match': {
+                                'tweetType': 4
+                            }
+                        }, {
+                            '$lookup': {
+                                'from': 'users',
+                                'localField': 'userID',
+                                'foreignField': 'userID',
+                                'pipeline': [
+                                    {
+                                        '$project': {
+                                            'userID': true,
+                                            'name': true,
+                                            'nickname': true,
+                                            'profilePhoto': true,
+                                            '_id': false
+                                        }
+                                    }
+                                ],
+                                'as': 'userDetails'
+                            }
+                        },
+
+                        { '$skip': TweetQuote.skip },
+                        { '$limit': TweetQuote.limit }
+                    ],
+                    'as': 'Quotes'
+                }
+            }
+        ]);
+
+        if (reTweeters !== false) {
+            if (reTweeters.length > 0) {
+                return reTweeters;
             }
             return null;
         }
@@ -315,7 +1010,6 @@ module.exports.postTweet = async (tweet) => {
             }
             return null;
         }
-
         return false;
 
     } catch (error) {
@@ -325,6 +1019,7 @@ module.exports.postTweet = async (tweet) => {
 
 module.exports.updateTweet = async (updateTweet) => {
     try {
+
         let updatedTweet = await new db.mongodb.CRUD('twitter', 'tweet').update({ tweetID: updateTweet.tweetID },
             {
                 $set: {
@@ -342,7 +1037,6 @@ module.exports.updateTweet = async (updateTweet) => {
         if (updatedTweet.modifiedCount === 0) {
             console.log('Güncelleme işlemi başarısız oldu.');
             return ({ message: 'aaa' });
-
         }
 
         return false;
@@ -356,15 +1050,80 @@ module.exports.deleteTweet = async (deleteTweet) => {
     try {
         let deletedTweet = await new db.mongodb.CRUD('twitter', 'tweet').delete({ userID: deleteTweet.userID, tweetID: deleteTweet.tweetID },
         );
+        if (deleteTweet.tweetType == 1) {
 
-        if (deletedTweet !== false) {
-            if (deletedTweet.length > 0) {
-                return deletedTweet[0];
+            if (deletedTweet !== false) {
+                if (deletedTweet.length > 0) {
+                    return deletedTweet[0];
+                }
+                return null;
             }
-            return null;
         }
 
+        if (deleteTweet.tweetType == 2) {
+            let updateTweet = new db.mongodb.CRUD('twitter', 'tweet').update(
+                { tweetID: deleteTweet.belongTo },
+                {
+                    $pull: { commenters: deleteTweet.userID },
+                    $inc: { commentSize: -1 }
+                }
+            );
+            console.log(updateTweet, 'AAAAAAAAAAAAAAAAAAAAA');
 
+            if (deletedTweet !== false) {
+                if (deletedTweet.length > 0) {
+                    return deletedTweet[0];
+                }
+                return null;
+            }
+        }
+
+        if (deleteTweet.tweetType == 3) {
+            let reTweet = await new db.mongodb.CRUD('twitter', 'tweet').find(
+                {
+                    tweetID: deleteTweet.tweetID,
+                    userID: deleteTweet.userID,
+                    tweetType: 3
+                }
+            );
+
+            if (reTweet) {
+                let deleteRetweets = await new db.mongodb.CRUD('twitter', 'tweet').delete({ tweetID: deleteTweet.tweetID });
+                console.log(deleteRetweets);
+                let updateSize = new db.mongodb.CRUD('twitter', 'tweet').update(
+                    { tweetID: deleteTweet.belongTo },
+                    {
+                        $pull: { reTweeters: deleteTweet.userID },
+                        $inc: { reTweetSize: -1 }
+                    }
+                );
+                console.log(updateSize, 'AAAAAAAAAAAAAAAA');
+            }
+            if (reTweet !== false) {
+                if (reTweet.length > 0) {
+                    return reTweet[0];
+                }
+                return null;
+            }
+        }
+
+        if (deleteTweet.tweetType == 4) {
+            let updateTweet = new db.mongodb.CRUD('twitter', 'tweet').update(
+                { tweetID: deleteTweet.belongTo },
+                {
+                    $pull: { quoters: deleteTweet.userID },
+                    $inc: { quotersSize: -1 }
+                }
+            );
+            console.log(updateTweet, 'AAAAAAAAAAAAAAAAAAAAA');
+
+            if (deletedTweet !== false) {
+                if (deletedTweet.length > 0) {
+                    return deletedTweet[0];
+                }
+                return null;
+            }
+        }
         return false;
 
     } catch (error) {
@@ -377,6 +1136,15 @@ module.exports.postComment = async (comment) => {
     try {
 
         let comments = await new db.mongodb.CRUD('twitter', 'tweet').insert(comment);
+
+        let updateTweet = new db.mongodb.CRUD('twitter', 'tweet').update(
+            { tweetID: comment.belongTo },
+            {
+                $push: { commenters: comment.userID },
+                $inc: { commentSize: 1 }
+            }
+        );
+        console.log(updateTweet, 'AAAAAAAAAAAAAAAAAAAAA');
 
         if (comments !== false) {
             if (comments.length > 0) {
@@ -397,13 +1165,14 @@ module.exports.postQuote = async (quote) => {
         let quotes = await new db.mongodb.CRUD('twitter', 'tweet').insert(quote);
 
         if (quotes) {
-            await new db.mongodb.CRUD('twitter', 'tweet').update(
-                { tweetID: quote.tweetID },
+            let updateSize = new db.mongodb.CRUD('twitter', 'tweet').update(
+                { tweetID: quote.belongTo },
                 {
                     $push: { quoters: quote.userID },
                     $inc: { quotersSize: 1 }
                 }
             );
+            console.log(updateSize);
         }
 
         if (quotes !== false) {
@@ -420,93 +1189,16 @@ module.exports.postQuote = async (quote) => {
     }
 };
 
-module.exports.updateQuote = async (updateQuote) => {
-    try {
-        let updatedQuote = await new db.mongodb.CRUD('twitter', 'tweet').update({ quoteID: updateQuote.quoteID },
-            {
-                $set: {
-                    tweet: updateQuote.tweet
-                }
-            });
-
-        if (updatedQuote !== false) {
-            if (updatedQuote.modifiedCount > 0) {
-                return updatedQuote;
-            }
-            return null;
-        }
-
-        if (updatedQuote.modifiedCount === 0) {
-            console.log('Güncelleme işlemi başarısız oldu.');
-            return ({ message: 'aaa' });
-
-        }
-
-        return false;
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-
-module.exports.deleteQuote = async (deleteQuote) => {
-
-    try {
-
-        let isQuoted = await new db.mongodb.CRUD('twitter', 'tweets').find(
-            {
-                userID: deleteQuote.userID,
-                quoteID: deleteQuote.quoteID
-            }
-            ,
-            [0, 1]
-        );
-
-        if (isQuoted) {
-            let deleteQuotes = await new db.mongodb.CRUD('twitter', 'tweet').delete({ quoteID: deleteQuote.quoteID });
-            console.log(deleteQuotes);
-            await new db.mongodb.CRUD('twitter', 'tweet').update(
-                { tweetID: deleteQuote.tweetID },
-                {
-                    $pull: { reTweeters: deleteQuote.userID },
-                    $inc: { likeSize: -1 }
-                }
-            );
-        }
-        if (isQuoted !== false) {
-            if (isQuoted.length > 0) {
-                return isQuoted[0];
-            }
-            return null;
-        }
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-
-
 module.exports.postRetweet = async (reTweet) => {
     try {
 
         let isreTweeted = await new db.mongodb.CRUD('twitter', 'tweet').find(
             {
-                tweetID: reTweet.tweetID,
+                belongTo: reTweet.belongTo,
                 userID: reTweet.userID,
-                tweetType: 5
+                tweetType: 3
             }
         );
-
-
-        if (isreTweeted.length > 0) {
-            return false;
-        }
-
-
-        console.log(isreTweeted);
 
         if (isreTweeted.length > 0) {
             console.log('User has already retweeted.');
@@ -516,8 +1208,8 @@ module.exports.postRetweet = async (reTweet) => {
 
         if (isreTweeted.length == 0) {
             let reTweets = await new db.mongodb.CRUD('twitter', 'tweet').insert(reTweet);
-            let reTweetSize = await new db.mongodb.CRUD('twitter', 'tweet').update(
-                { tweetID: reTweet.tweetID },
+            let reTweetSize = new db.mongodb.CRUD('twitter', 'tweet').update(
+                { tweetID: reTweet.belongTo },
                 {
                     $push: {
                         reTweeters: reTweet.userID
@@ -536,51 +1228,12 @@ module.exports.postRetweet = async (reTweet) => {
                 return null;
             }
         }
-
         return false;
 
     } catch (error) {
         helpers.error.logger(error);
     }
 };
-
-module.exports.deleteRetweet = async (deleteRetweet) => {
-    try {
-
-        let reTweet = await new db.mongodb.CRUD('twitter', 'tweet').find(
-            {
-                reTweetID: deleteRetweet.reTweetID,
-                userID: deleteRetweet.userID,
-                tweetType: 5
-            }
-        );
-
-        if (reTweet) {
-            let deleteRetweets = await new db.mongodb.CRUD('twitter', 'tweet').delete({ reTweetID: deleteRetweet.reTweetID });
-            console.log(deleteRetweets);
-            await new db.mongodb.CRUD('twitter', 'tweet').aggregate(
-                { tweetID: deleteRetweet.tweetID },
-                {
-                    $pull: { reTweeters: deleteRetweet.userID },
-                    $inc: { reTweetSize: -1 }
-                }
-            );
-        }
-        if (reTweet !== false) {
-            if (reTweet.length > 0) {
-                return reTweet[0];
-            }
-            return null;
-        }
-
-        return false;
-
-    } catch (error) {
-        helpers.error.logger(error);
-        throw error;
-    }
-};
-
 
 module.exports.postLike = async (like) => {
     try {
@@ -592,7 +1245,7 @@ module.exports.postLike = async (like) => {
 
         if (isliked.length == 0) {
             let likes = await new db.mongodb.CRUD('twitter', 'likes').insert(like);
-            let likeSize = await new db.mongodb.CRUD('twitter', 'tweet').update(
+            let likeSize = new db.mongodb.CRUD('twitter', 'tweet').update(
                 { tweetID: like.tweetID },
                 {
                     $inc: {
@@ -609,7 +1262,6 @@ module.exports.postLike = async (like) => {
                 return null;
             }
         }
-
         return false;
 
     } catch (error) {
@@ -619,29 +1271,18 @@ module.exports.postLike = async (like) => {
 
 module.exports.deleteLike = async (deleteLike) => {
     try {
+        let deleteLikes = await new db.mongodb.CRUD('twitter', 'likes').delete({ likedID: deleteLike.likedID });
 
-        let isliked = await new db.mongodb.CRUD('twitter', 'likes').find(
+        new db.mongodb.CRUD('twitter', 'tweet').update(
+            { tweetID: deleteLike.tweetID },
             {
-                userID: deleteLike.userID,
-                tweetID: deleteLike.tweetID
+                $inc: { likeSize: -1 }
             }
-            ,
-            [0, 1]
         );
 
-        if (isliked) {
-            let deleteLikes = await new db.mongodb.CRUD('twitter', 'likes').delete({ likedID: deleteLike.likedID });
-            console.log(deleteLikes);
-            await new db.mongodb.CRUD('twitter', 'tweet').update(
-                { tweetID: deleteLike.tweetID },
-                {
-                    $inc: { likeSize: -1 }
-                }
-            );
-        }
-        if (isliked !== false) {
-            if (isliked.length > 0) {
-                return isliked[0];
+        if (deleteLikes !== false) {
+            if (deleteLikes.length > 0) {
+                return deleteLikes[0];
             }
             return null;
         }
